@@ -5,6 +5,7 @@ import math
 import os
 
 import isaaclab.sim as sim_utils
+import isaaclab.terrains as terrain_gen
 from isaaclab.actuators import ImplicitActuatorCfg
 from isaaclab.assets import ArticulationCfg
 from isaaclab.managers import EventTermCfg as EventTerm
@@ -354,8 +355,24 @@ class RobotEnvCfg(G1VelocityEnvCfg):
     def __post_init__(self):
         super().__post_init__()
 
-        self.scene.terrain.terrain_type = "plane"
-        self.scene.terrain.terrain_generator = None
+        self.scene.terrain.terrain_type = "generator"
+        self.scene.terrain.terrain_gene
+        rator = terrain_gen.TerrainGeneratorCfg(
+            size=(8.0, 8.0),
+            border_width=20.0,
+            num_rows=10,
+            num_cols=20,
+            horizontal_scale=0.1,
+            vertical_scale=0.005,
+            slope_threshold=0.75,
+            use_cache=False,
+            sub_terrains={
+                "flat":   terrain_gen.MeshPlaneTerrainCfg(proportion=0.3),
+                "wave":   terrain_gen.HfWaveTerrainCfg(proportion=0.3, amplitude_range=(0.05, 0.2), num_waves=4),
+                "rough":  terrain_gen.HfRandomUniformTerrainCfg(proportion=0.4, noise_range=(0.02, 0.14), noise_step=0.01, downsampled_scale=0.2),
+            },
+        )
+        self.scene.terrain.max_init_terrain_level = 9
         self.curriculum = {}
 
         self.decimation = 4

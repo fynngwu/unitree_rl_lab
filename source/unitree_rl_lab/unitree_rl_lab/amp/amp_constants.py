@@ -133,10 +133,8 @@ AMP_BODY_NAMES = (
     "pelvis",                    # npz 00
     "left_hip_roll_link",        # npz 02
     "left_knee_link",            # npz 04
-    "left_ankle_roll_link",      # npz 06
     "right_hip_roll_link",       # npz 08
     "right_knee_link",           # npz 10
-    "right_ankle_roll_link",     # npz 12
     "left_shoulder_roll_link",   # npz 17
     "left_elbow_link",           # npz 19
     "left_wrist_yaw_link",       # npz 22
@@ -150,10 +148,8 @@ AMP_NPZ_BODY_IDS = torch.tensor([
     0,   # pelvis
     2,   # left_hip_roll_link
     4,   # left_knee_link
-    6,   # left_ankle_roll_link
     8,   # right_hip_roll_link
     10,  # right_knee_link
-    12,  # right_ankle_roll_link
     17,  # left_shoulder_roll_link
     19,  # left_elbow_link
     22,  # left_wrist_yaw_link
@@ -168,10 +164,8 @@ AMP_ISAAC_BODY_IDS = torch.tensor([
     0,   # pelvis                  <- npz 0
     4,   # left_hip_roll_link       <- npz 2
     10,  # left_knee_link           <- npz 4
-    18,  # left_ankle_roll_link     <- npz 6
     5,   # right_hip_roll_link      <- npz 8
     11,  # right_knee_link          <- npz 10
-    19,  # right_ankle_roll_link    <- npz 12
     16,  # left_shoulder_roll_link  <- npz 17
     22,  # left_elbow_link          <- npz 19
     28,  # left_wrist_yaw_link      <- npz 22
