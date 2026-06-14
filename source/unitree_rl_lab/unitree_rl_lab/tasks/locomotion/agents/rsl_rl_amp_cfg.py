@@ -4,10 +4,14 @@ from isaaclab.utils import configclass
 from isaaclab_rl.rsl_rl import RslRlOnPolicyRunnerCfg, RslRlPpoActorCriticCfg, RslRlPpoAlgorithmCfg
 from unitree_rl_lab.amp.amp_constants import AMP_BODY_NAMES, AMP_ANCHOR_NAME
 
+# Resolve to unitree_rl_lab project root (up 4 levels from this file's package path).
+# This file lives at: source/unitree_rl_lab/unitree_rl_lab/tasks/locomotion/agents/
+# Project root is:    source/unitree_rl_lab/unitree_rl_lab/tasks/locomotion/agents/../../../../../
+# After pip -e install, the actual path is resolved relative to this file on disk.
 _THIS_DIR = os.path.dirname(os.path.abspath(__file__))
-# resolved absolute path to motion data (up 3 levels: agents -> locomotion -> tasks -> unitree_rl_lab)
+# Go up to unitree_rl_lab repo root: agents/ -> locomotion/ -> tasks/ -> unitree_rl_lab/ -> source/ -> unitree_rl_lab/
 AMP_MOTION_DIR = os.path.abspath(os.path.normpath(os.path.join(
-    _THIS_DIR, "..", "..", "..", "assets", "motions", "g1", "amp", "WalkandRun"
+    _THIS_DIR, "..", "..", "..", "..", "..", "assets", "motions", "g1", "amp", "WalkandRun"
 )))
 assert os.path.exists(AMP_MOTION_DIR), f"AMP motion dir not found: {AMP_MOTION_DIR}"
 

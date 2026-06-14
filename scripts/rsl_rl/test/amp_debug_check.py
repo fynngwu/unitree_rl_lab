@@ -12,24 +12,38 @@ import sys
 # -----------------------------------------------------------------------------
 # Same rsl_rl bootstrap as amp_train.py. Must happen before Isaac/RSL imports.
 # -----------------------------------------------------------------------------
-AMP_MJLAB_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
-AMP_RSL_RL_DIR = os.path.join(AMP_MJLAB_ROOT, "rsl_rl")
+# -----------------------------------------------------------------------------
+# Force bundled rsl_rl before any other imports.
+# Must run before isaaclab / unitree_rl_lab / gymnasium imports.
+# -----------------------------------------------------------------------------
+import importlib
+import os
+import sys
 
-if not os.path.isfile(os.path.join(AMP_RSL_RL_DIR, "__init__.py")):
-    raise RuntimeError(f"Cannot find bundled AMP_mjlab rsl_rl: {AMP_RSL_RL_DIR}")
+UNITREE_RL_LAB_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
+UNITREE_RSL_RL_DIR = os.path.join(UNITREE_RL_LAB_ROOT, "rsl_rl")
 
-sys.path.insert(0, AMP_MJLAB_ROOT)
+if not os.path.isfile(os.path.join(UNITREE_RSL_RL_DIR, "__init__.py")):
+    raise RuntimeError(f"Cannot find bundled rsl_rl: {UNITREE_RSL_RL_DIR}")
+
+if UNITREE_RL_LAB_ROOT in sys.path:
+    sys.path.remove(UNITREE_RL_LAB_ROOT)
+sys.path.insert(0, UNITREE_RL_LAB_ROOT)
+
+if "rsl_rl" in sys.modules:
+    loaded = getattr(sys.modules["rsl_rl"], "__file__", "")
+    if not os.path.abspath(loaded).startswith(os.path.abspath(UNITREE_RSL_RL_DIR)):
+        raise RuntimeError(f"Wrong rsl_rl was imported before bootstrap.\n  Loaded: {loaded}\n  Expected under: {UNITREE_RSL_RL_DIR}")
+
 importlib.invalidate_caches()
+import rsl_rl  # noqa: F811
 
-import rsl_rl  # noqa: E402
+loaded = os.path.abspath(getattr(rsl_rl, "__file__", ""))
+if not loaded.startswith(os.path.abspath(UNITREE_RSL_RL_DIR)):
+    raise RuntimeError(f"Failed to force bundled rsl_rl.\n  Loaded: {loaded}\n  Expected under: {UNITREE_RSL_RL_DIR}")
 
-loaded_rsl_rl = os.path.abspath(getattr(rsl_rl, "__file__", ""))
-if not loaded_rsl_rl.startswith(os.path.abspath(AMP_RSL_RL_DIR)):
-    raise RuntimeError(
-        "Wrong rsl_rl loaded.\n"
-        f"  loaded   : {loaded_rsl_rl}\n"
-        f"  expected : {AMP_RSL_RL_DIR}"
-    )
+print(f"[AMP] Using bundled rsl_rl: {loaded}")
+# -----------------------------------------------------------------------------
 
 print(f"[PASS] rsl_rl = {loaded_rsl_rl}")
 
