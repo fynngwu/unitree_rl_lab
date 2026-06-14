@@ -36,43 +36,32 @@ cd unitree_rl_lab
 # Install the package in editable mode
 pip install -e source/unitree_rl_lab/
 
-# Download AMP reference motion data
-# Place .npz motion files into source/assets/motions/g1/amp/WalkandRun/
-# (see AMP Motion Data section below)
+# Robot USD model is included in the repository.
 ```
 
-### Unitree Robot Description Files
 
-**Method 1: USD Files**
-- Download from [unitree_model](https://huggingface.co/datasets/unitreerobotics/unitree_model)
-  ```bash
-  git clone https://huggingface.co/datasets/unitreerobotics/unitree_model
-  ```
-- Set `UNITREE_MODEL_DIR` in `source/unitree_rl_lab/unitree_rl_lab/assets/robots/unitree.py`:
-  ```python
-  UNITREE_MODEL_DIR = "/path/to/unitree_model"
-  ```
-
-**Method 2: URDF Files** (recommended, Isaac Sim >= 5.0)
-- Download from [unitree_ros](https://github.com/unitreerobotics/unitree_ros)
-  ```bash
-  git clone https://github.com/unitreerobotics/unitree_ros.git
-  ```
-- Set `UNITREE_ROS_DIR` in `source/unitree_rl_lab/unitree_rl_lab/assets/robots/unitree.py`:
-  ```python
-  UNITREE_ROS_DIR = "/path/to/unitree_ros/unitree_ros"
-  ```
 
 ### AMP Motion Data
 
-AMP tasks require reference motion data (`.npz` files) for training the discriminator. Copy the motion clips to the expected location:
+AMP tasks require reference motion data (`.npz` files) for training the discriminator. Export CSV motion clips from [GMR](https://github.com/chengqiang0103/GMR) using `scripts/batch_gmr_pkl_to_csv.py`, then convert to NPZ format:
+
+**Install mjlab dependencies (in a separate virtual environment):**
 
 ```bash
-# Copy motion data from existing assets directory (if present)
-cp -r assets/motions source/assets/motions
+pip install mjlab
 ```
 
-If you don't have the data locally, download it from [link-to-motion-data] and place it at:
+**Convert CSV to NPZ:**
+
+```bash
+python scripts/csv_to_npz.py \
+  --input-file motion_data.csv \
+  --output-name motion.npz \
+  --input-fps 30 \
+  --output-fps 50
+```
+
+Place the converted `.npz` files into:
 ```
 source/assets/motions/g1/amp/WalkandRun/
 ```
