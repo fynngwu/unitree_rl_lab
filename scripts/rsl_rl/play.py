@@ -7,6 +7,38 @@
 
 """Launch Isaac Sim Simulator first."""
 
+# -----------------------------------------------------------------------------
+# Force AMP_mjlab bundled rsl_rl before any other imports.
+# -----------------------------------------------------------------------------
+import importlib
+import os
+import sys
+
+AMP_MJLAB_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
+AMP_RSL_RL_DIR = os.path.join(AMP_MJLAB_ROOT, "rsl_rl")
+
+if not os.path.isfile(os.path.join(AMP_RSL_RL_DIR, "__init__.py")):
+    raise RuntimeError(f"Cannot find bundled rsl_rl: {AMP_RSL_RL_DIR}")
+
+if AMP_MJLAB_ROOT in sys.path:
+    sys.path.remove(AMP_MJLAB_ROOT)
+sys.path.insert(0, AMP_MJLAB_ROOT)
+
+if "rsl_rl" in sys.modules:
+    loaded = getattr(sys.modules["rsl_rl"], "__file__", "")
+    if not os.path.abspath(loaded).startswith(os.path.abspath(AMP_RSL_RL_DIR)):
+        raise RuntimeError(f"Wrong rsl_rl was imported before bootstrap.\n  Loaded: {loaded}\n  Expected under: {AMP_RSL_RL_DIR}")
+
+importlib.invalidate_caches()
+import rsl_rl  # noqa: F811
+
+loaded = os.path.abspath(getattr(rsl_rl, "__file__", ""))
+if not loaded.startswith(os.path.abspath(AMP_RSL_RL_DIR)):
+    raise RuntimeError(f"Failed to force bundled AMP_mjlab rsl_rl.\n  Loaded: {loaded}\n  Expected under: {AMP_RSL_RL_DIR}")
+
+print(f"[AMP] Using bundled rsl_rl: {loaded}")
+# -----------------------------------------------------------------------------
+
 import argparse
 from importlib.metadata import version
 
@@ -50,8 +82,6 @@ import os
 import time
 import torch
 
-from rsl_rl.runners import OnPolicyRunner
-
 import isaaclab_tasks  # noqa: F401
 from isaaclab.envs import DirectMARLEnv, multi_agent_to_single_agent
 from isaaclab.utils.assets import retrieve_file_path
@@ -61,6 +91,7 @@ from isaaclab_rl.rsl_rl import RslRlOnPolicyRunnerCfg, RslRlVecEnvWrapper, expor
 from isaaclab_tasks.utils import get_checkpoint_path
 
 import unitree_rl_lab.tasks  # noqa: F401
+from unitree_rl_lab.amp.amp_on_policy_runner import AmpOnPolicyRunner
 from unitree_rl_lab.utils.parser_cfg import parse_env_cfg
 
 
@@ -116,14 +147,7 @@ def main():
 
     print(f"[INFO]: Loading model checkpoint from: {resume_path}")
     # load previously trained model
-    if not hasattr(agent_cfg, "class_name") or agent_cfg.class_name == "OnPolicyRunner":
-        runner = OnPolicyRunner(env, agent_cfg.to_dict(), log_dir=None, device=agent_cfg.device)
-    elif agent_cfg.class_name == "DistillationRunner":
-        from rsl_rl.runners import DistillationRunner
-
-        runner = DistillationRunner(env, agent_cfg.to_dict(), log_dir=None, device=agent_cfg.device)
-    else:
-        raise ValueError(f"Unsupported runner class: {agent_cfg.class_name}")
+    runner = AmpOnPolicyRunner(env, agent_cfg.to_dict(), log_dir=None, device=agent_cfg.device)
     runner.load(resume_path)
 
     # obtain the trained policy for inference
@@ -155,8 +179,6 @@ def main():
 
     # reset environment
     obs = env.get_observations()
-    if version("rsl-rl-lib").startswith("2.3."):
-        obs, _ = env.get_observations()
     timestep = 0
     # simulate environment
     while simulation_app.is_running():

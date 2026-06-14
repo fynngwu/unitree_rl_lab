@@ -7,12 +7,97 @@ try:
     from isaaclab.utils.math import quat_apply_inverse
 except ImportError:
     from isaaclab.utils.math import quat_rotate_inverse as quat_apply_inverse
+from isaaclab.utils.math import quat_apply, yaw_quat, matrix_from_quat
 from isaaclab.assets import Articulation, RigidObject
 from isaaclab.managers import SceneEntityCfg
 from isaaclab.sensors import ContactSensor
 
 if TYPE_CHECKING:
     from isaaclab.envs import ManagerBasedRLEnv
+
+"""
+AMP rewards.
+"""
+
+
+def is_terminated(env: ManagerBasedRLEnv) -> torch.Tensor:
+    """Penalize terminated episodes that don't correspond to episodic timeouts."""
+    return env.termination_manager.terminated.float()
+
+
+def track_anchor_linear_velocity(
+    env: ManagerBasedRLEnv,
+    std: float,
+    command_name: str,
+    asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
+    anchor_cfg: SceneEntityCfg = SceneEntityCfg("robot", body_names=()),
+) -> torch.Tensor:
+    """Reward for tracking the commanded anchor linear velocity.
+
+    Transforms the 2D command to world frame via the anchor yaw and compares
+    with the anchor body-link world-frame linear velocity.
+    """
+    robot: Articulation = env.scene[asset_cfg.name]
+    command = env.command_manager.get_command(command_name)
+    command_xyz_b = torch.cat(
+        [command[:, :2], torch.zeros_like(command[:, :1])], dim=-1
+    )
+    anchor_quat_w = robot.data.body_link_quat_w[:, anchor_cfg.body_ids[0]]
+    command_xyz_w = quat_apply(yaw_quat(anchor_quat_w), command_xyz_b)
+    anchor_lin_vel_w = robot.data.body_link_lin_vel_w[:, anchor_cfg.body_ids[0]]
+    lin_vel_error = torch.sum(
+        torch.square(command_xyz_w[:, :3] - anchor_lin_vel_w[:, :3]), dim=1
+    )
+    return torch.exp(-lin_vel_error / std**2)
+
+
+def track_anchor_angular_velocity(
+    env: ManagerBasedRLEnv,
+    std: float,
+    command_name: str,
+    asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
+    anchor_cfg: SceneEntityCfg = SceneEntityCfg("robot", body_names=()),
+) -> torch.Tensor:
+    """Reward heading error for heading-controlled envs, angular velocity for others."""
+    robot: Articulation = env.scene[asset_cfg.name]
+    command = env.command_manager.get_command(command_name)
+    anchor_quat_w = robot.data.body_link_quat_w[:, anchor_cfg.body_ids[0]]
+    anchor_ang_vel_w = robot.data.body_link_ang_vel_w[:, anchor_cfg.body_ids[0]]
+    anchor_ang_z_vel_w = anchor_ang_vel_w[:, 2]
+    command_ang_vel_w = command[:, 2]
+    ang_vel_z_error = torch.square(command_ang_vel_w - anchor_ang_z_vel_w)
+    anchor_ang_vel_b = quat_apply_inverse(anchor_quat_w, anchor_ang_vel_w)
+    ang_vel_xy_error = torch.sum(torch.square(anchor_ang_vel_b[:, :2]), dim=-1)
+    total_error = ang_vel_z_error + ang_vel_xy_error
+    return torch.exp(-total_error / std**2)
+
+
+def body_ang_vel_xy_l2(
+    env: ManagerBasedRLEnv,
+    std: float,
+    body_cfg: SceneEntityCfg = SceneEntityCfg("robot", body_names=()),
+) -> torch.Tensor:
+    """Penalize body angular velocity in the xy plane."""
+    robot: Articulation = env.scene[body_cfg.name]
+    body_quat_w = robot.data.body_link_quat_w[:, body_cfg.body_ids[0]]
+    body_ang_vel_w = robot.data.body_link_ang_vel_w[:, body_cfg.body_ids[0]]
+    body_ang_vel_b = quat_apply_inverse(body_quat_w, body_ang_vel_w)
+    ang_vel_xy_error = torch.sum(torch.square(body_ang_vel_b[:, :2]), dim=-1)
+    return torch.exp(-ang_vel_xy_error / std**2)
+
+
+def track_root_height(
+    env: ManagerBasedRLEnv,
+    std: float,
+    asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
+) -> torch.Tensor:
+    """Reward for tracking the commanded root height."""
+    robot: Articulation = env.scene[asset_cfg.name]
+    desired_height = robot.data.default_root_state[:, 2]
+    cur_root_height = robot.data.body_link_pos_w[:, 0, 2]
+    height_error = torch.square(desired_height - cur_root_height)
+    return torch.exp(-height_error / std**2)
+
 
 """
 Joint penalties.
