@@ -356,8 +356,7 @@ class RobotEnvCfg(G1VelocityEnvCfg):
         super().__post_init__()
 
         self.scene.terrain.terrain_type = "generator"
-        self.scene.terrain.terrain_gene
-        rator = terrain_gen.TerrainGeneratorCfg(
+        self.scene.terrain.terrain_generator = terrain_gen.TerrainGeneratorCfg(
             size=(8.0, 8.0),
             border_width=20.0,
             num_rows=10,
