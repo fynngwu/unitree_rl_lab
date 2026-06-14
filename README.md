@@ -41,9 +41,27 @@ pip install -e source/unitree_rl_lab/
 
 
 
-### AMP Motion Data
+### AMP Training
 
-AMP tasks require reference motion data (`.npz` files) for training the discriminator. Export CSV motion clips from [GMR](https://github.com/chengqiang0103/GMR) using `scripts/batch_gmr_pkl_to_csv.py`, then convert to NPZ format:
+Default AMP motion data (walking and running) is already included in the repository. To train:
+
+```bash
+# Activate environment (if not already active)
+conda activate env_isaaclab
+
+# Train AMP policy
+python scripts/rsl_rl/amp_train.py --task Unitree-G1-29dof-AMP-Flat --headless
+
+# Play a trained AMP policy
+python scripts/rsl_rl/play.py --task Unitree-G1-29dof-AMP-Flat
+
+# List available tasks
+./unitree_rl_lab.sh -l
+```
+
+### Custom AMP Motion Data
+
+If you want to use your own motion data, convert CSV clips from [GMR](https://github.com/chengqiang0103/GMR) (exported via `scripts/batch_gmr_pkl_to_csv.py`) to NPZ format:
 
 **Install mjlab dependencies (in a separate virtual environment):**
 
@@ -64,21 +82,5 @@ python scripts/csv_to_npz.py \
 Place the converted `.npz` files into:
 ```
 source/assets/motions/g1/amp/WalkandRun/
-```
-
-### AMP Training
-
-```bash
-# Activate environment (if not already active)
-conda activate env_isaaclab
-
-# Train AMP policy
-python scripts/rsl_rl/amp_train.py --task Unitree-G1-29dof-AMP-Flat --headless
-
-# Play a trained AMP policy
-python scripts/rsl_rl/play.py --task Unitree-G1-29dof-AMP-Flat
-
-# List available tasks
-./unitree_rl_lab.sh -l
 ```
 
